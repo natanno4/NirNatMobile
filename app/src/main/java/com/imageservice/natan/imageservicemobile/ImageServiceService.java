@@ -30,6 +30,7 @@ import static java.lang.Thread.sleep;
 
 public class ImageServiceService extends Service {
     private BroadcastReceiver wifiReceiver;
+    private IntentFilter theFilter;
     private int count = 0;
 
     @Nullable
@@ -41,10 +42,15 @@ public class ImageServiceService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        this.theFilter = new IntentFilter();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+
         Toast.makeText(this, "service is starting...", Toast.LENGTH_SHORT);
-        final IntentFilter theFilter = new IntentFilter();
-        theFilter.addAction("android.new.wifi.supplicant.CONNECTION_Change");
-        theFilter.addAction("android.net.wifi.STATE_CHANGE");
+        this.theFilter.addAction("android.net.wifi.supplicant.CONNECTION_CHANGE");
+        this.theFilter.addAction("android.net.wifi.STATE_CHANGE");
         this.wifiReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -60,6 +66,7 @@ public class ImageServiceService extends Service {
             }
         };
         this.registerReceiver(this.wifiReceiver, theFilter);
+        return START_STICKY;
     }
 
     public void onDestroy() {
@@ -138,7 +145,8 @@ public class ImageServiceService extends Service {
         if(dcim == null) {
             return null;
         }
-        return dcim.listFiles();
+        File[] files =  dcim.listFiles();
+        return files;
     }
 
     public byte[] getBytesFromBitmap(Bitmap bitmap) {
