@@ -21,9 +21,12 @@ import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+
+import static java.lang.Thread.sleep;
 
 public class ImageServiceService extends Service {
     private BroadcastReceiver wifiReceiver;
@@ -103,10 +106,18 @@ public class ImageServiceService extends Service {
                             Socket socket = new Socket(serverAddr, 8600);
                             try {
                                 OutputStream outputStream = socket.getOutputStream();
+                                InputStream input = socket.getInputStream();
                                 FileInputStream fis = new FileInputStream(pic);
                                 Bitmap bm = BitmapFactory.decodeStream(fis);
                                 byte[] imgbyte = getBytesFromBitmap(bm);
-                                outputStream.write(imgbyte);
+                                outputStream.write(pic.getName().toString().getBytes());
+                                outputStream.flush();
+                                sleep(200);
+                                byte[] confirmByte = new byte[1];
+                                input.read(confirmByte, 0 ,confirmByte.length);
+                                if((int) confirmByte[0] == 1) {
+                                    outputStream.write(imgbyte);
+                                }
                                 outputStream.flush();
                             } catch (Exception e) {
                                 Log.e("TCP", "S: Error", e);
