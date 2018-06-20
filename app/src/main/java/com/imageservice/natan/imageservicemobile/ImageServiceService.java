@@ -25,6 +25,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.Thread.sleep;
 
@@ -86,6 +88,7 @@ public class ImageServiceService extends Service {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    builder.setSmallIcon(R.drawable.ic_launcher_background);
                     builder.setContentTitle("Picture Transfer")
                             .setContentText("Transfer in progress")
                             .setPriority(NotificationCompat.PRIORITY_LOW);
@@ -109,8 +112,8 @@ public class ImageServiceService extends Service {
                     for (File pic : pics) {
                         count++;
                         try {
-                            InetAddress serverAddr = InetAddress.getByName("10.0.0.2");
-                            Socket socket = new Socket(serverAddr, 8600);
+                            InetAddress serverAddr = InetAddress.getByName("10.0.2.2");
+                            Socket socket = new Socket(serverAddr, 2500);
                             try {
                                 OutputStream outputStream = socket.getOutputStream();
                                 InputStream input = socket.getInputStream();
@@ -146,7 +149,34 @@ public class ImageServiceService extends Service {
             return null;
         }
         File[] files =  dcim.listFiles();
-        return files;
+        List<File> pics = new ArrayList<File>();
+        for(File f : files) {
+            if(f.isDirectory()) {
+                HandleDir(pics, f);
+            }
+            else {
+                pics.add(f);
+            }
+        }
+        File[] temp = new File[pics.size()];
+        int c = 0;
+        for (File f : pics) {
+            temp[c] = f;
+            c++;
+        }
+        return temp;
+    }
+
+    private void HandleDir(List<File> files, File dir) {
+        File[] temp = dir.listFiles();
+        for(File f : temp) {
+            if(f.isDirectory()) {
+                HandleDir(files, f);
+            }
+            else {
+                files.add(f);
+            }
+        }
     }
 
     public byte[] getBytesFromBitmap(Bitmap bitmap) {
