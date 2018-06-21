@@ -1,5 +1,7 @@
 package com.imageservice.natan.imageservicemobile;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.arch.lifecycle.ViewModelProvider;
 import android.content.BroadcastReceiver;
@@ -72,6 +74,7 @@ public class ImageServiceService extends Service {
     }
 
     public void onDestroy() {
+        super.onDestroy();
         Toast.makeText(this, "service is stopping...", Toast.LENGTH_SHORT);
     }
 
@@ -82,9 +85,22 @@ public class ImageServiceService extends Service {
         }
         final int length = pics.length;
         if(pics != null) {
-            final NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+            final NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            final NotificationCompat.Builder builder;
             final int notify_id = 1;
-            final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default");
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                int importance = NotificationManager.IMPORTANCE_LOW;
+                NotificationChannel notificationChannel = new NotificationChannel("ImageServiceAppChannel", "Image Service App Channel", importance);
+                notificationChannel.enableLights(true);
+                notificationChannel.enableVibration(true);
+                notificationChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
+                notificationManager.createNotificationChannel(notificationChannel);
+                builder = new NotificationCompat.Builder(this,"ImageServiceAppChannel");
+
+            } else {
+                builder = new NotificationCompat.Builder(this,"default");
+
+            }
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -92,26 +108,15 @@ public class ImageServiceService extends Service {
                     builder.setContentTitle("Picture Transfer")
                             .setContentText("Transfer in progress")
                             .setPriority(NotificationCompat.PRIORITY_LOW);
-                    for (; count < length; ) {
+                    for (File pic : pics) {
+                        count++;
                         if (count == length / 2) {
                             builder.setContentText("Half way through");
-                            notificationManager.notify(notify_id, builder.build());
                         }
                         builder.setProgress(length, count, false);
                         notificationManager.notify(notify_id, builder.build());
-                    }
-                    // At the End
-                    builder.setContentText("Download complete")
-                            .setProgress(0, 0, false);
-                    notificationManager.notify(notify_id, builder.build());
-                }
-            }).start();
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (File pic : pics) {
-                        count++;
                         try {
+                            sleep(500);
                             InetAddress serverAddr = InetAddress.getByName("10.0.2.2");
                             Socket socket = new Socket(serverAddr, 2500);
                             try {
@@ -138,6 +143,9 @@ public class ImageServiceService extends Service {
                             Log.e("TCP", "C: Error", e);
                         }
                     }
+                    builder.setContentText("Download complete")
+                            .setProgress(0, 0, false);
+                    notificationManager.notify(notify_id, builder.build());
                 }
             }).start();
         }
